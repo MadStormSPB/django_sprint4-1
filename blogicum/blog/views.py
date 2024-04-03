@@ -38,7 +38,7 @@ class PostUpdateView(PostsEditMixin, LoginRequiredMixin, UpdateView):
         if self.request.user != post.author:
             return redirect('blog:post_detail', pk=self.kwargs['pk'])
         return super().dispatch(request, *args, **kwargs)
- 
+
     def get_success_url(self):
         return reverse('blog:post_detail', args=[self.kwargs['pk']])
 

@@ -23,7 +23,7 @@ class PostManager(models.Manager):
             )
             .order_by('-pub_date')
         )
-    
+
 
 class PublishedModel(models.Model):
     """Базовая модель."""
@@ -79,7 +79,7 @@ class Category(PublishedModel, BaseTitle):
 
     def __str__(self) -> str:
         return self.title
-  
+
     def get_absolute_url(self) -> str:
         return reverse(
             "blog:category_posts", kwargs={"category_slug": self.slug}
@@ -126,7 +126,7 @@ class Post(PublishedModel, BaseTitle):
 
     def __str__(self) -> str:
         return self.title
-      
+
     def get_absolute_url(self) -> str:
         return reverse("blog:post_detail", kwargs={"pk": self.pk})
 
