@@ -21,7 +21,6 @@ class PostManager(models.Manager):
                 category__is_published=True,
                 pub_date__lte=timezone.now(),
             )
-            .order_by('-pub_date')
         )
 
 
@@ -116,7 +115,6 @@ class Post(PublishedModel, BaseTitle):
     )
     image = models.ImageField('Изображение', blank=True, upload_to='img/')
     objects = models.Manager()
-    post_list = PostManager()
 
     class Meta:
         verbose_name = 'публикация'
@@ -128,7 +126,7 @@ class Post(PublishedModel, BaseTitle):
         return self.title
 
     def get_absolute_url(self) -> str:
-        return reverse("blog:post_detail", kwargs={"pk": self.pk})
+        return reverse("blog:post_detail", kwargs={"post_id": self.pk})
 
 
 class Comment(models.Model):
@@ -136,6 +134,7 @@ class Comment(models.Model):
         User,
         on_delete=models.CASCADE,
         verbose_name='Автор',
+        related_name='comments',
     )
     post = models.ForeignKey(
         Post,
