@@ -7,7 +7,7 @@ class PostsQuerySetMixin:
         return Post.objects.filter(
             is_published=True,
             pub_date__lte=timezone.now()
-        )
+        ).order_by('-pub_date')
 
 
 class PostsEditMixin:

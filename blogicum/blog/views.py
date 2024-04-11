@@ -89,7 +89,7 @@ class CommentDeleteView(CommentEditMixin, LoginRequiredMixin, DeleteView):
     def delete(self, request, *args, **kwargs):
         comment = get_object_or_404(Comment, pk=self.kwargs['comment_pk'])
         if self.request.user != comment.author:
-            return redirect('blog:post_detail', pk=self.kwargs['post_id'])
+            return redirect('blog:post_detail', post_id=self.kwargs['post_id'])
         return super().delete(request, *args, **kwargs)
 
 
@@ -101,7 +101,7 @@ class CommentUpdateView(CommentEditMixin, LoginRequiredMixin, UpdateView):
     def dispatch(self, request, *args, **kwargs):
         comment = get_object_or_404(Comment, pk=self.kwargs['comment_pk'])
         if self.request.user != comment.author:
-            return redirect('blog:post_detail', pk=self.kwargs['post_id'])
+            return redirect('blog:post_detail', post_id=self.kwargs['post_id'])
 
         return super().dispatch(request, *args, **kwargs)
 
@@ -152,8 +152,7 @@ class BlogIndexListView(PostsQuerySetMixin, ListView):
 
     def get_queryset(self):
         queryset = super().get_queryset().filter(category__is_published=True)
-        queryset = self.add_comment_count_annotation(queryset)
-        return queryset.order_by('-pub_date')
+        return self.add_comment_count_annotation(queryset)
 
 
 class BlogCategoryListView(PostsQuerySetMixin, ListView):
