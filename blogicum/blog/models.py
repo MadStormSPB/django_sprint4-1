@@ -6,22 +6,25 @@ from django.utils import timezone
 User = get_user_model()
 
 
+class PostQuerySet(models.QuerySet):
+    def published(self):
+        return self.filter(
+            is_published=True,
+            category__is_published=True,
+            pub_date__lte=timezone.now()
+        ).select_related(
+            'category',
+            'author',
+            'location',
+        )
+
+
 class PostManager(models.Manager):
     def get_queryset(self):
-        return (
-            super()
-            .get_queryset()
-            .select_related(
-                'category',
-                'author',
-                'location',
-            )
-            .filter(
-                is_published=True,
-                category__is_published=True,
-                pub_date__lte=timezone.now(),
-            )
-        )
+        return PostQuerySet(self.model)
+
+    def published(self):
+        return self.get_queryset().published()
 
 
 class PublishedModel(models.Model):
@@ -88,8 +91,6 @@ class Category(PublishedModel, BaseTitle):
 class Post(PublishedModel, BaseTitle):
     text = models.TextField(verbose_name='Текст')
     pub_date = models.DateTimeField(
-        auto_now=False,
-        auto_now_add=False,
         verbose_name='Дата и время публикации',
         help_text=(
             'Если установить дату и время в будущем — можно делать '
@@ -114,12 +115,11 @@ class Post(PublishedModel, BaseTitle):
         null=True,
     )
     image = models.ImageField('Изображение', blank=True, upload_to='img/')
-    objects = models.Manager()
 
     class Meta:
         verbose_name = 'публикация'
         verbose_name_plural = 'Публикации'
-        ordering = ("-pub_date",)
+        ordering = ('-pub_date',)
         default_related_name = 'posts'
 
     def __str__(self) -> str:
