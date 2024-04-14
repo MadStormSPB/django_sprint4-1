@@ -58,9 +58,7 @@ class PostCreateView(PostsEditMixin, LoginRequiredMixin, CreateView):
     def get_success_url(self) -> str:
         return reverse(
             'blog:profile',
-            kwargs={
-                'username': self.request.user.username,
-            },
+            args=[self.request.user.username]
         )
 
 
@@ -79,7 +77,7 @@ class CommentDeleteView(CommentEditMixin, LoginRequiredMixin, DeleteView):
     pk_url_kwarg = 'comment_id'
 
     def delete(self, request, *args, **kwargs):
-        comment = get_object_or_404(Comment, pk=self.kwargs['comment_id'])
+        comment = get_object_or_404(Comment, pk=self.kwargs[self.pk_url_kwarg])
         if self.request.user != comment.author:
             return redirect('blog:post_detail', post_id=self.kwargs['post_id'])
         return super().delete(request, *args, **kwargs)
@@ -91,7 +89,7 @@ class CommentUpdateView(CommentEditMixin, LoginRequiredMixin, UpdateView):
     pk_url_kwarg = 'comment_id'
 
     def dispatch(self, request, *args, **kwargs):
-        comment = get_object_or_404(Comment, pk=self.kwargs['comment_id'])
+        comment = get_object_or_404(Comment, pk=self.kwargs[self.pk_url_kwarg])
         if self.request.user != comment.author:
             return redirect('blog:post_detail', post_id=self.kwargs['post_id'])
 
@@ -105,17 +103,12 @@ class AuthorProfileListView(PostsQuerySetMixin, ListView):
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        if self.request.user.username == self.kwargs['username']:
-            return self.request.user.posts.select_related(
-                'category',
-                'author',
-                'location'
-            ).annotate(comment_count=Count
-                       ('comments')).order_by('-pub_date').all()
-        return self.add_comment_count_annotation(
-            queryset.filter(author__username=self.kwargs['username'],
-                            is_published=True)
-        )
+        author = get_object_or_404(User, username=self.kwargs['username'])
+        if self.request.user == author:
+            queryset = author.posts.all()
+        else:
+            queryset = queryset.filter(author=author, is_published=True)
+        return self.add_comment_count_annotation(queryset)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -131,9 +124,10 @@ class BlogIndexListView(PostsQuerySetMixin, ListView):
     context_object_name = 'post_list'
     paginate_by = PAGINATED_BY
 
-    def get_queryset(self):
-        queryset = super().get_queryset().filter(category__is_published=True)
-        return self.add_comment_count_annotation(queryset)
+    queryset_filter = {'category__is_published': True}
+
+    def get_queryset(self): 
+        return super().get_queryset().filter(**self.queryset_filter)
 
 
 class BlogCategoryListView(PostsQuerySetMixin, ListView):
@@ -143,20 +137,15 @@ class BlogCategoryListView(PostsQuerySetMixin, ListView):
     paginate_by = PAGINATED_BY
 
     def get_queryset(self):
-        category_slug = self.kwargs['category_slug']
-        self.category = get_object_or_404(
-            Category,
-            slug=self.kwargs['category_slug'],
-            is_published=True
-        )
-        return super().get_queryset().filter(
-            category__slug=category_slug
-        )
+        category_slug = self.kwargs['category_slug'] 
+        self.category = self.get_category(category_slug)
+        queryset = super().get_queryset().filter(category__slug=category_slug,
+                                                 is_published=True)
+        return self.add_comment_count_annotation(queryset)
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['category'] = self.category
-        return context
+    def get_category(self, category_slug):
+        return get_object_or_404(Category, slug=category_slug,
+                                 is_published=True)
 
 
 class PostDetailView(PostsQuerySetMixin, DetailView):
@@ -172,18 +161,9 @@ class PostDetailView(PostsQuerySetMixin, DetailView):
         )
         return context
 
-    def get_queryset(self):
-        return (
-            super()
-            .get_queryset()
-            .prefetch_related(
-                'comments',
-            )
-        )
-
     def get_object(self, queryset=None):
-        post = get_object_or_404(Post, pk=self.kwargs['post_id'])
+        post = get_object_or_404(Post, pk=self.kwargs.get(self.pk_url_kwarg))
         if self.request.user == post.author:
             return post
-        return get_object_or_404(Post, pk=self.kwargs['post_id'],
+        return get_object_or_404(Post, pk=self.kwargs.get(self.pk_url_kwarg),
                                  is_published=True)

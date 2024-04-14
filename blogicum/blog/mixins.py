@@ -1,26 +1,35 @@
-from django.utils import timezone
-from .models import Comment, Post
 from django.db.models import Count
 from django.urls import reverse
+from django.db import models
+from django.utils import timezone
+
+from .models import Comment, Post
 
 
 class PostsQuerySetMixin:
-    def get_queryset(self):
-        queryset = Post.objects.filter(
+    def filter_published_posts(self, queryset):
+        return queryset.filter(
             is_published=True,
             pub_date__lte=timezone.now()
         )
-        if hasattr(self, 'category_slug'):
-            queryset = queryset.filter(category__slug=self.category_slug)
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        queryset = self.filter_published_posts(queryset)
+        queryset = self.add_comment_count_annotation(queryset)
         return queryset
 
     def add_comment_count_annotation(self, queryset):
-        return (queryset.annotate(comment_count=Count('comments')).order_by
-                ('-pub_date').select_related(
+        return queryset.annotate(comment_count=Count
+                                 ('comments')).select_related(
             'category',
             'author',
             'location'
-        ))
+        ).order_by('-pub_date')
+
+
+class PostQuerySet(PostsQuerySetMixin, models.QuerySet):
+    pass
 
 
 class PostsEditMixin:

@@ -1,30 +1,8 @@
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.urls import reverse
-from django.utils import timezone
 
 User = get_user_model()
-
-
-class PostQuerySet(models.QuerySet):
-    def published(self):
-        return self.filter(
-            is_published=True,
-            category__is_published=True,
-            pub_date__lte=timezone.now()
-        ).select_related(
-            'category',
-            'author',
-            'location',
-        )
-
-
-class PostManager(models.Manager):
-    def get_queryset(self):
-        return PostQuerySet(self.model)
-
-    def published(self):
-        return self.get_queryset().published()
 
 
 class PublishedModel(models.Model):
