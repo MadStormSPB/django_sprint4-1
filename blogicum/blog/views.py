@@ -1,7 +1,6 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
-from django.db.models import Count
 from django.views.generic import (
     CreateView,
     DeleteView,
@@ -126,7 +125,7 @@ class BlogIndexListView(PostsQuerySetMixin, ListView):
 
     queryset_filter = {'category__is_published': True}
 
-    def get_queryset(self): 
+    def get_queryset(self):
         return super().get_queryset().filter(**self.queryset_filter)
 
 
@@ -137,7 +136,7 @@ class BlogCategoryListView(PostsQuerySetMixin, ListView):
     paginate_by = PAGINATED_BY
 
     def get_queryset(self):
-        category_slug = self.kwargs['category_slug'] 
+        category_slug = self.kwargs['category_slug']
         self.category = self.get_category(category_slug)
         queryset = super().get_queryset().filter(category__slug=category_slug,
                                                  is_published=True)
