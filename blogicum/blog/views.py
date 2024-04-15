@@ -104,10 +104,10 @@ class AuthorProfileListView(ListView):
 
     def get_queryset(self):
         author = get_object_or_404(User, username=self.kwargs['username'])
-        queryset = author.posts.annotate(comment_count=Count('comments'))
+        queryset = add_comment_count_annotation(author.posts.all())
         if self.request.user != author:
             queryset = filter_published_posts(queryset)
-        return queryset.order_by('-pub_date')
+        return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -123,13 +123,7 @@ class BlogIndexListView(ListView):
     context_object_name = 'post_list'
     paginate_by = PAGINATED_BY
 
-    queryset = (
-        filter_published_posts(
-            Post.objects.filter(category__is_published=True)
-                        .annotate(comment_count=Count('comments'))
-        )
-        .order_by('-pub_date')
-    )
+    queryset = filter_published_posts(Post.objects)
 
 
 class BlogCategoryListView(ListView):
@@ -164,5 +158,6 @@ class PostDetailView(DetailView):
         if self.request.user == post.author:
             return post
         return get_object_or_404(
-            filter_published_posts(Post.objects.all()), pk=self.kwargs.get
-            (self.pk_url_kwarg))
+            filter_published_posts(Post.objects.all()),
+            pk=self.kwargs.get(self.pk_url_kwarg)
+        )
