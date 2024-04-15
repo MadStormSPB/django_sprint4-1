@@ -106,7 +106,8 @@ class AuthorProfileListView(PostsQuerySetMixin, ListView):
         if self.request.user == author:
             queryset = author.posts.all()
         else:
-            queryset = queryset.filter(author=author, is_published=True)
+            queryset = queryset.filter(author__username=author.username,
+                                       is_published=True)
         return self.add_comment_count_annotation(queryset)
 
     def get_context_data(self, **kwargs):
@@ -123,10 +124,7 @@ class BlogIndexListView(PostsQuerySetMixin, ListView):
     context_object_name = 'post_list'
     paginate_by = PAGINATED_BY
 
-    queryset_filter = {'category__is_published': True}
-
-    def get_queryset(self):
-        return super().get_queryset().filter(**self.queryset_filter)
+    queryset = Post.objects.filter(category__is_published=True)
 
 
 class BlogCategoryListView(PostsQuerySetMixin, ListView):
@@ -137,9 +135,8 @@ class BlogCategoryListView(PostsQuerySetMixin, ListView):
 
     def get_queryset(self):
         category_slug = self.kwargs['category_slug']
-        self.category = self.get_category(category_slug)
-        queryset = super().get_queryset().filter(category__slug=category_slug,
-                                                 is_published=True)
+        category = self.get_category(category_slug)
+        queryset = self.filter_published_posts(category.posts)
         return self.add_comment_count_annotation(queryset)
 
     def get_category(self, category_slug):
@@ -164,5 +161,6 @@ class PostDetailView(PostsQuerySetMixin, DetailView):
         post = get_object_or_404(Post, pk=self.kwargs.get(self.pk_url_kwarg))
         if self.request.user == post.author:
             return post
-        return get_object_or_404(Post, pk=self.kwargs.get(self.pk_url_kwarg),
-                                 is_published=True)
+        return get_object_or_404(self.filter_published_posts
+                                 (Post.objects.all()), pk=self.kwargs.get
+                                 (self.pk_url_kwarg))

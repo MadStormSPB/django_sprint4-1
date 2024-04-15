@@ -7,8 +7,9 @@ from .models import Comment, Post
 
 
 class PostsQuerySetMixin:
-    def filter_published_posts(self, queryset):
-        return queryset.filter(
+    @staticmethod
+    def filter_published_posts(posts_queryset):
+        return posts_queryset.filter(
             is_published=True,
             pub_date__lte=timezone.now()
         )
@@ -19,17 +20,11 @@ class PostsQuerySetMixin:
         queryset = self.add_comment_count_annotation(queryset)
         return queryset
 
-    def add_comment_count_annotation(self, queryset):
-        return queryset.annotate(comment_count=Count
-                                 ('comments')).select_related(
-            'category',
-            'author',
-            'location'
-        ).order_by('-pub_date')
-
-
-class PostQuerySet(PostsQuerySetMixin, models.QuerySet):
-    pass
+    @staticmethod
+    def add_comment_count_annotation(posts_queryset):
+        return (posts_queryset.annotate(comment_count=Count('comments'))
+                .order_by('-pub_date')
+                .select_related('category', 'author', 'location'))
 
 
 class PostsEditMixin:
