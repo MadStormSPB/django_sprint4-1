@@ -1,4 +1,5 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db.models import Count
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
 from django.views.generic import (
@@ -11,7 +12,8 @@ from django.views.generic import (
 
 from .forms import CreateCommentForm, CreatePostForm
 from .models import Category, Comment, Post, User
-from .mixins import CommentEditMixin, PostsEditMixin, PostsQuerySetMixin
+from .mixins import (CommentEditMixin, PostsEditMixin,
+                     filter_published_posts, add_comment_count_annotation)
 
 PAGINATED_BY = 10
 
@@ -95,20 +97,17 @@ class CommentUpdateView(CommentEditMixin, LoginRequiredMixin, UpdateView):
         return super().dispatch(request, *args, **kwargs)
 
 
-class AuthorProfileListView(PostsQuerySetMixin, ListView):
+class AuthorProfileListView(ListView):
     model = Post
     template_name = 'blog/profile.html'
     paginate_by = PAGINATED_BY
 
     def get_queryset(self):
-        queryset = super().get_queryset()
         author = get_object_or_404(User, username=self.kwargs['username'])
-        if self.request.user == author:
-            queryset = author.posts.all()
-        else:
-            queryset = queryset.filter(author__username=author.username,
-                                       is_published=True)
-        return self.add_comment_count_annotation(queryset)
+        queryset = author.posts.annotate(comment_count=Count('comments'))
+        if self.request.user != author:
+            queryset = filter_published_posts(queryset)
+        return queryset.order_by('-pub_date')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -118,16 +117,22 @@ class AuthorProfileListView(PostsQuerySetMixin, ListView):
         return context
 
 
-class BlogIndexListView(PostsQuerySetMixin, ListView):
+class BlogIndexListView(ListView):
     model = Post
     template_name = 'blog/index.html'
     context_object_name = 'post_list'
     paginate_by = PAGINATED_BY
 
-    queryset = Post.objects.filter(category__is_published=True)
+    queryset = (
+        filter_published_posts(
+            Post.objects.filter(category__is_published=True)
+                        .annotate(comment_count=Count('comments'))
+        )
+        .order_by('-pub_date')
+    )
 
 
-class BlogCategoryListView(PostsQuerySetMixin, ListView):
+class BlogCategoryListView(ListView):
     model = Post
     template_name = 'blog/category.html'
     context_object_name = 'post_list'
@@ -135,16 +140,13 @@ class BlogCategoryListView(PostsQuerySetMixin, ListView):
 
     def get_queryset(self):
         category_slug = self.kwargs['category_slug']
-        category = self.get_category(category_slug)
-        queryset = self.filter_published_posts(category.posts)
-        return self.add_comment_count_annotation(queryset)
-
-    def get_category(self, category_slug):
-        return get_object_or_404(Category, slug=category_slug,
-                                 is_published=True)
+        category = get_object_or_404(Category, slug=category_slug,
+                                     is_published=True)
+        queryset = filter_published_posts(category.posts.all())
+        return add_comment_count_annotation(queryset)
 
 
-class PostDetailView(PostsQuerySetMixin, DetailView):
+class PostDetailView(DetailView):
     model = Post
     template_name = 'blog/detail.html'
     pk_url_kwarg = 'post_id'
@@ -161,6 +163,6 @@ class PostDetailView(PostsQuerySetMixin, DetailView):
         post = get_object_or_404(Post, pk=self.kwargs.get(self.pk_url_kwarg))
         if self.request.user == post.author:
             return post
-        return get_object_or_404(self.filter_published_posts
-                                 (Post.objects.all()), pk=self.kwargs.get
-                                 (self.pk_url_kwarg))
+        return get_object_or_404(
+            filter_published_posts(Post.objects.all()), pk=self.kwargs.get
+            (self.pk_url_kwarg))
