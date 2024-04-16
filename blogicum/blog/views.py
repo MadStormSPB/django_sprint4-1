@@ -1,5 +1,4 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Count
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
 from django.views.generic import (
@@ -12,8 +11,8 @@ from django.views.generic import (
 
 from .forms import CreateCommentForm, CreatePostForm
 from .models import Category, Comment, Post, User
-from .mixins import (CommentEditMixin, PostsEditMixin,
-                     filter_published_posts, add_comment_count_annotation)
+from .mixins import (CommentEditMixin, PostsEditMixin)
+from .utils import (filter_published_posts, add_comment_count_annotation)
 
 PAGINATED_BY = 10
 
@@ -104,10 +103,10 @@ class AuthorProfileListView(ListView):
 
     def get_queryset(self):
         author = get_object_or_404(User, username=self.kwargs['username'])
-        queryset = add_comment_count_annotation(author.posts.all())
+        posts = add_comment_count_annotation(author.posts.all())
         if self.request.user != author:
-            queryset = filter_published_posts(queryset)
-        return queryset
+            posts = filter_published_posts(posts)
+        return posts
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
