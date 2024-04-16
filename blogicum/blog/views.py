@@ -12,7 +12,7 @@ from django.views.generic import (
 from .forms import CreateCommentForm, CreatePostForm
 from .models import Category, Comment, Post, User
 from .mixins import (CommentEditMixin, PostsEditMixin)
-from .utils import (filter_published_posts, add_comment_count_annotation)
+from .utils import (filter_published_posts, retain_comment_information)
 
 PAGINATED_BY = 10
 
@@ -103,7 +103,7 @@ class AuthorProfileListView(ListView):
 
     def get_queryset(self):
         author = get_object_or_404(User, username=self.kwargs['username'])
-        posts = add_comment_count_annotation(author.posts.all())
+        posts = retain_comment_information(author.posts.all())
         if self.request.user != author:
             posts = filter_published_posts(posts)
         return posts
@@ -136,7 +136,7 @@ class BlogCategoryListView(ListView):
         category = get_object_or_404(Category, slug=category_slug,
                                      is_published=True)
         queryset = filter_published_posts(category.posts.all())
-        return add_comment_count_annotation(queryset)
+        return retain_comment_information(queryset)
 
 
 class PostDetailView(DetailView):

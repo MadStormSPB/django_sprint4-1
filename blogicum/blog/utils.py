@@ -11,10 +11,10 @@ def filter_published_posts(posts):
         comment_count=Count('comments')
     ).order_by(
         '-pub_date'
-    )
-
-
-def add_comment_count_annotation(posts):
-    return posts.select_related(
+    ).select_related(
         'category', 'author', 'location'
     )
+
+
+def retain_comment_information(posts):
+    return posts
