@@ -14,7 +14,3 @@ def filter_published_posts(posts):
     ).select_related(
         'category', 'author', 'location'
     )
-
-
-def retain_comment_information(posts):
-    return posts
