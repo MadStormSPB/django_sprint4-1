@@ -5,8 +5,17 @@ from django.urls import reverse
 User = get_user_model()
 
 
+class BaseTitle(models.Model):
+    """Base model of title."""
+
+    title = models.CharField(max_length=256, verbose_name='Заголовок')
+
+    class Meta:
+        abstract = True
+
+
 class PublishedModel(models.Model):
-    """Базовая модель."""
+    """Base model."""
 
     is_published = models.BooleanField(
         default=True,
@@ -19,28 +28,6 @@ class PublishedModel(models.Model):
 
     class Meta:
         abstract = True
-
-
-class BaseTitle(models.Model):
-    """Базовая модель заголовка."""
-
-    title = models.CharField(max_length=256, verbose_name='Заголовок')
-
-    class Meta:
-        abstract = True
-
-
-class Location(PublishedModel):
-    """Местоположение."""
-
-    name = models.CharField(max_length=256, verbose_name='Название места')
-
-    class Meta:
-        verbose_name = 'местоположение'
-        verbose_name_plural = 'Местоположения'
-
-    def __str__(self) -> str:
-        return self.name
 
 
 class Category(PublishedModel, BaseTitle):
@@ -64,7 +51,20 @@ class Category(PublishedModel, BaseTitle):
         return reverse(
             "blog:category_posts", kwargs={"category_slug": self.slug}
         )
+   
 
+class Location(PublishedModel):
+    """Location."""
+
+    name = models.CharField(max_length=256, verbose_name='Название места')
+
+    class Meta:
+        verbose_name = 'местоположение'
+        verbose_name_plural = 'Местоположения'
+
+    def __str__(self) -> str:
+        return self.name
+ 
 
 class Post(PublishedModel, BaseTitle):
     text = models.TextField(verbose_name='Текст')
