@@ -54,6 +54,7 @@ class Category(PublishedModel, BaseTitle):
             "blog:category_posts", kwargs={"category_slug": self.slug}
         )
 
+
 class Location(PublishedModel):
     """Location."""
 
