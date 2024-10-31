@@ -14,7 +14,7 @@ from .models import Category, Comment, Post, User
 from .mixins import (CommentEditMixin, PostsEditMixin)
 from .utils import (filter_published_posts)
 
-PAGINATED_BY = 10
+from .constants import PAGINATED_BY
 
 
 class PostDeleteView(PostsEditMixin, LoginRequiredMixin, DeleteView):
@@ -72,27 +72,31 @@ class CommentCreateView(CommentEditMixin, LoginRequiredMixin, CreateView):
         return super().form_valid(form)
 
 
-class CommentDeleteView(CommentEditMixin, LoginRequiredMixin, DeleteView):
+class CommentViewAbstract(CommentEditMixin, LoginRequiredMixin):
     model = Comment
     pk_url_kwarg = 'comment_id'
 
-    def delete(self, request, *args, **kwargs):
+    def change(self):
         comment = get_object_or_404(Comment, pk=self.kwargs[self.pk_url_kwarg])
         if self.request.user != comment.author:
             return redirect('blog:post_detail', post_id=self.kwargs['post_id'])
+
+
+class CommentDeleteView(CommentViewAbstract, DeleteView):
+    def delete(self, request, *args, **kwargs):
+        try_delete = self.change()
+        if try_delete:
+            return try_delete
         return super().delete(request, *args, **kwargs)
 
 
-class CommentUpdateView(CommentEditMixin, LoginRequiredMixin, UpdateView):
-    model = Comment
+class CommentUpdateView(CommentViewAbstract, UpdateView):
     form_class = CreateCommentForm
-    pk_url_kwarg = 'comment_id'
 
     def dispatch(self, request, *args, **kwargs):
-        comment = get_object_or_404(Comment, pk=self.kwargs[self.pk_url_kwarg])
-        if self.request.user != comment.author:
-            return redirect('blog:post_detail', post_id=self.kwargs['post_id'])
-
+        try_dispatch = self.change()
+        if try_dispatch:
+            return try_dispatch
         return super().dispatch(request, *args, **kwargs)
 
 
@@ -121,10 +125,10 @@ class BlogIndexListView(ListView):
     template_name = 'blog/index.html'
     context_object_name = 'post_list'
     paginate_by = PAGINATED_BY
-
     queryset = filter_published_posts(Post.objects)
 
 
+# Про "В контекст шаблона нужно передавать объект категории" вообще не понял. Новую функцию гет_контекст_дата создавтаьчто-ли?
 class BlogCategoryListView(ListView):
     model = Post
     template_name = 'blog/category.html'

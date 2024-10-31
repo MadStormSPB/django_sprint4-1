@@ -4,14 +4,14 @@ from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, UpdateView
 
-from .forms import CustomUserCreationForm, EditUserProfileForm
+from .forms import UserCreatForm, EditUserProfileForm
 
 User = get_user_model()
 
 
 class UserCreateView(CreateView):
     template_name = 'registration/registration_form.html'
-    form_class = CustomUserCreationForm
+    form_class = UserCreatForm
     success_url = reverse_lazy('users:login')
 
     def form_valid(self, form):

@@ -2,13 +2,15 @@ from django.db import models
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 
+from .constants import MAX_LENGTH
+
 User = get_user_model()
 
 
 class BaseTitle(models.Model):
     """Base model of title."""
 
-    title = models.CharField(max_length=256, verbose_name='Заголовок')
+    title = models.CharField(max_length=MAX_LENGTH, verbose_name='Заголовок')
 
     class Meta:
         abstract = True
