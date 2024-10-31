@@ -53,7 +53,6 @@ class Category(PublishedModel, BaseTitle):
         return reverse(
             "blog:category_posts", kwargs={"category_slug": self.slug}
         )
-   
 
 class Location(PublishedModel):
     """Location."""
@@ -66,7 +65,7 @@ class Location(PublishedModel):
 
     def __str__(self) -> str:
         return self.name
- 
+
 
 class Post(PublishedModel, BaseTitle):
     text = models.TextField(verbose_name='Текст')

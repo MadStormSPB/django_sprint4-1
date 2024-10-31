@@ -128,7 +128,8 @@ class BlogIndexListView(ListView):
     queryset = filter_published_posts(Post.objects)
 
 
-# Про "В контекст шаблона нужно передавать объект категории" вообще не понял. Новую функцию гет_контекст_дата создавтаьчто-ли?
+# Про "В контекст шаблона нужно передавать объект категории"
+#  вообще не понял. Новую функцию гет_контекст_дата создавтаьчто-ли?
 class BlogCategoryListView(ListView):
     model = Post
     template_name = 'blog/category.html'
